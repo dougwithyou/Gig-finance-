@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getTransactionsForMonth } from "@/lib/data/transactions";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { TransactionList } from "@/components/transactions/transaction-list";
+import { PendingSyncBanner } from "@/components/transactions/pending-sync-banner";
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
@@ -15,6 +16,7 @@ export default async function TransactionsPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
       <h1 className="text-xl font-semibold">Registrar movimiento</h1>
+      <PendingSyncBanner />
       <TransactionForm />
       <div>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Este mes</h2>

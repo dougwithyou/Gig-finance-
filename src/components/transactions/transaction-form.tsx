@@ -1,34 +1,86 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { addTransaction, type FormState } from "@/app/(app)/transactions/actions";
+import { useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { TransactionType } from "@/lib/types/database";
+import { insertTransactionClient } from "@/lib/offline/insert-transaction";
+import { enqueueTransaction } from "@/lib/offline/queue";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export function TransactionForm() {
-  const [state, formAction, isPending] = useActionState<FormState, FormData>(
-    addTransaction,
-    {}
-  );
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<TransactionType>("income");
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [queuedNotice, setQueuedNotice] = useState(false);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setQueuedNotice(false);
+
+    const formData = new FormData(e.currentTarget);
+    const amount = Number(formData.get("amount"));
+    const description = String(formData.get("description") ?? "").trim();
+    const date = String(formData.get("date") ?? "");
+    const sourcePlatform = String(formData.get("source_platform") ?? "").trim();
+    const category = String(formData.get("category") ?? "").trim();
+
+    if (!amount || amount <= 0) return setError("Ingresa un monto válido.");
+    if (!description) return setError("Agrega una descripción.");
+    if (!date) return setError("Selecciona una fecha.");
+
+    const item = {
+      type,
+      amount,
+      description,
+      date,
+      source_platform: type === "income" ? sourcePlatform || null : null,
+      category: type === "expense" ? category || null : null,
+    };
+
+    setIsPending(true);
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      await enqueueTransaction({ ...item, localId: crypto.randomUUID(), queued_at: Date.now() });
+      setIsPending(false);
+      setQueuedNotice(true);
+      formRef.current?.reset();
+      return;
+    }
+
+    const result = await insertTransactionClient(item);
+    setIsPending(false);
+
+    if (result.ok) {
+      formRef.current?.reset();
+      router.refresh();
+      return;
+    }
+
+    if (result.reason === "network") {
+      await enqueueTransaction({ ...item, localId: crypto.randomUUID(), queued_at: Date.now() });
+      setQueuedNotice(true);
+      formRef.current?.reset();
+      return;
+    }
+
+    setError(result.message);
+  }
 
   return (
     <Card>
       <CardContent className="pt-5">
-        <form
-          action={formAction}
-          key={state?.success ?? "initial"}
-          className="flex flex-col gap-4"
-        >
-          <input type="hidden" name="type" value={type} />
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -92,7 +144,12 @@ export function TransactionForm() {
             <Input id="date" name="date" type="date" defaultValue={todayISO()} required />
           </div>
 
-          {state?.error && <p className="text-sm font-medium text-destructive">{state.error}</p>}
+          {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+          {queuedNotice && (
+            <p className="text-sm font-medium text-warning">
+              Sin conexión — guardado en el dispositivo, se sincronizará solo.
+            </p>
+          )}
 
           <Button type="submit" size="lg" variant={type === "income" ? "positive" : "destructive"} disabled={isPending}>
             {isPending ? "Guardando..." : type === "income" ? "Agregar ingreso" : "Agregar gasto"}

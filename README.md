@@ -4,10 +4,9 @@ Control de ingresos, gastos y pagos fijos mensuales para trabajadores gig
 (delivery, rideshare, freelance). Ver [`PLAN.md`](./PLAN.md) para la
 arquitectura completa y las fases de construcción.
 
-**Estado actual: Fases 0, 1 y 2 implementadas** (base, MVP, y lógica de
-presupuesto completa: gastos recurrentes prorateados, inferencia de días
-trabajados, historial/reportes con gráfico de tendencia). Falta: sync
-offline y notificaciones push (Fases 3-4 del plan).
+**Estado actual: Fases 0, 1, 2 y 3 implementadas** (base, MVP, lógica de
+presupuesto completa, y outbox offline para transacciones). Falta:
+notificaciones push (Fase 4 del plan).
 
 ## Stack
 
@@ -72,9 +71,11 @@ src/lib/
   data/                   -- queries reutilizadas por las páginas
   calc.ts                 -- cálculo del resumen/meta diaria (puro, sin DB)
   dashboard-summary.ts    -- fetch + cálculo combinados, usado por dashboard e historial
+  offline/                -- outbox IndexedDB (queue.ts) + insert client-side (insert-transaction.ts)
 src/proxy.ts              -- auth gate (Next.js 16 renombró middleware.ts a esto)
 supabase/migrations/      -- esquema + RLS, numerados y versionados
 public/manifest.json      -- instalabilidad como PWA
+public/sw.js              -- cache network-first de la última página vista + instalabilidad
 ```
 
 ## Notas
@@ -84,7 +85,15 @@ public/manifest.json      -- instalabilidad como PWA
 - La "meta diaria" usa `remainingWorkDays = planned_work_days − días ya
   trabajados`. Un día cuenta como trabajado si tiene al menos un ingreso
   registrado (automático) o si se marca a mano desde el dashboard.
-- No hay sync offline ni notificaciones push todavía — ver `PLAN.md`
-  sección "Fases" para el resto del roadmap (Fases 3-4).
+- **Offline**: registrar un ingreso/gasto sin conexión lo guarda en
+  IndexedDB (`src/lib/offline/queue.ts`) y lo sincroniza solo al recuperar
+  señal (evento `online`, `visibilitychange`, o el botón "Reintentar" en
+  `/transactions`). Solo cubre altas de transacciones — eliminar o editar
+  pagos fijos/gastos recurrentes todavía requiere conexión, según el
+  alcance de la Fase 3 del plan. iOS Safari no tiene Background Sync API,
+  así que la cola solo se vacía con la app en primer plano, nunca en
+  segundo plano.
+- No hay notificaciones push todavía — ver `PLAN.md` sección "Fases"
+  (Fase 4).
 - Toda la UI está en un solo idioma (español), sin sistema de i18n — es
   una app de un solo usuario, no lo necesita.

@@ -11,17 +11,22 @@ export function monthBounds(year: number, month: number) {
   };
 }
 
+/**
+ * `userId` is only needed when querying with the service-role admin client
+ * (cron jobs), which bypasses RLS and has no auth.uid() to scope by —
+ * regular request-scoped clients rely on RLS and can leave it undefined.
+ */
 export async function getTransactionsForMonth(
   supabase: SupabaseClient,
   year: number,
-  month: number
+  month: number,
+  userId?: string
 ): Promise<Transaction[]> {
   const { start, end } = monthBounds(year, month);
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .gte("date", start)
-    .lte("date", end)
+  let query = supabase.from("transactions").select("*").gte("date", start).lte("date", end);
+  if (userId) query = query.eq("user_id", userId);
+
+  const { data, error } = await query
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
 

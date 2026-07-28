@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/bottom-nav";
-import { SignOutButton } from "@/components/sign-out-button";
 
 export default async function AppLayout({
   children,
@@ -19,7 +20,9 @@ export default async function AppLayout({
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="text-lg font-semibold">Gig Finance</span>
-        <SignOutButton />
+        <Link href="/settings" aria-label="Configuración" className="text-muted-foreground">
+          <Settings className="h-5 w-5" />
+        </Link>
       </header>
       <main className="flex-1 px-4 py-4 pb-24">{children}</main>
       <BottomNav />

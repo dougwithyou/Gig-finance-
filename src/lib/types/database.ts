@@ -68,3 +68,22 @@ export interface WorkedDay {
   source: WorkedDaySource;
   created_at: string;
 }
+
+export interface PushSubscription {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  user_id: string;
+  daily_target_reminder_enabled: boolean;
+  bill_due_alert_days_before: number;
+  low_income_alert_enabled: boolean;
+  low_income_alert_threshold_pct: number;
+  created_at: string;
+}

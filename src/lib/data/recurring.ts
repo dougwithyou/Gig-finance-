@@ -2,13 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RecurringExpense } from "@/lib/types/database";
 
 export async function getActiveRecurringExpenses(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  userId?: string
 ): Promise<RecurringExpense[]> {
-  const { data, error } = await supabase
-    .from("recurring_expenses")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
+  let query = supabase.from("recurring_expenses").select("*").eq("is_active", true);
+  if (userId) query = query.eq("user_id", userId);
+
+  const { data, error } = await query.order("created_at", { ascending: true });
 
   if (error) throw error;
   return data as RecurringExpense[];

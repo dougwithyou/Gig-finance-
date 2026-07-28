@@ -4,13 +4,13 @@ import type { BillPayment, FixedBill, FixedBillWithStatus } from "@/lib/types/da
 export async function getFixedBillsWithStatus(
   supabase: SupabaseClient,
   year: number,
-  month: number
+  month: number,
+  userId?: string
 ): Promise<FixedBillWithStatus[]> {
-  const { data: bills, error: billsError } = await supabase
-    .from("fixed_bills")
-    .select("*")
-    .eq("is_active", true)
-    .order("due_day", { ascending: true });
+  let billsQuery = supabase.from("fixed_bills").select("*").eq("is_active", true);
+  if (userId) billsQuery = billsQuery.eq("user_id", userId);
+
+  const { data: bills, error: billsError } = await billsQuery.order("due_day", { ascending: true });
 
   if (billsError) throw billsError;
 

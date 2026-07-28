@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Transaction } from "@/lib/types/database";
+import type { Transaction, TransactionType } from "@/lib/types/database";
 
 /** First and last calendar day of the given year/month (1-12), as ISO date strings. */
 export function monthBounds(year: number, month: number) {
@@ -29,16 +29,26 @@ export async function getTransactionsForMonth(
   return data as Transaction[];
 }
 
-export async function getRecentTransactions(
+export interface TransactionFilters {
+  from?: string;
+  to?: string;
+  type?: TransactionType;
+}
+
+export async function getFilteredTransactions(
   supabase: SupabaseClient,
-  limit = 50
+  filters: TransactionFilters
 ): Promise<Transaction[]> {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
+  let query = supabase.from("transactions").select("*");
+
+  if (filters.from) query = query.gte("date", filters.from);
+  if (filters.to) query = query.lte("date", filters.to);
+  if (filters.type) query = query.eq("type", filters.type);
+
+  const { data, error } = await query
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(500);
 
   if (error) throw error;
   return data as Transaction[];

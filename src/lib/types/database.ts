@@ -46,3 +46,25 @@ export interface WorkDayConfig {
   planned_work_days: number;
   created_at: string;
 }
+
+export type RecurringFrequency = "daily" | "weekly" | "biweekly";
+
+export interface RecurringExpense {
+  id: string;
+  user_id: string;
+  name: string;
+  amount: number;
+  frequency: RecurringFrequency;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type WorkedDaySource = "manual" | "inferred_from_income";
+
+export interface WorkedDay {
+  id: string;
+  user_id: string;
+  date: string;
+  source: WorkedDaySource;
+  created_at: string;
+}

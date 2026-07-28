@@ -40,3 +40,33 @@ export async function setPlannedWorkDays(_prev: FormState, formData: FormData): 
   revalidatePath("/dashboard");
   return {};
 }
+
+/** Manual worked-day toggle, for marking today worked before any income is logged. */
+export async function toggleWorkedToday(formData: FormData) {
+  const date = String(formData.get("date") ?? "");
+  const currentlyWorked = String(formData.get("currently_worked") ?? "") === "true";
+  if (!date) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  if (currentlyWorked) {
+    // Only a manual mark can be unmarked here — a day inferred from an
+    // actual income entry stays worked until that transaction is deleted.
+    await supabase
+      .from("worked_days")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("date", date)
+      .eq("source", "manual");
+  } else {
+    await supabase
+      .from("worked_days")
+      .upsert({ user_id: user.id, date, source: "manual" }, { onConflict: "user_id,date" });
+  }
+
+  revalidatePath("/dashboard");
+}

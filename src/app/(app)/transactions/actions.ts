@@ -52,6 +52,17 @@ export async function addTransaction(_prev: FormState, formData: FormData): Prom
     return { error: error.message };
   }
 
+  if (type === "income") {
+    // Mark this day worked, unless it's already marked (manually or from
+    // an earlier income entry that day) — upsert is idempotent either way.
+    await supabase
+      .from("worked_days")
+      .upsert(
+        { user_id: user.id, date, source: "inferred_from_income" },
+        { onConflict: "user_id,date", ignoreDuplicates: true }
+      );
+  }
+
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   return { success: Date.now() };
@@ -62,7 +73,37 @@ export async function deleteTransaction(formData: FormData) {
   if (!id) return;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select("type, date")
+    .eq("id", id)
+    .single();
+
   await supabase.from("transactions").delete().eq("id", id);
+
+  if (tx?.type === "income") {
+    const { count } = await supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("type", "income")
+      .eq("date", tx.date);
+
+    if (!count) {
+      // No income left that day — remove the inferred worked-day row, but
+      // never touch one the user set manually.
+      await supabase
+        .from("worked_days")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("date", tx.date)
+        .eq("source", "inferred_from_income");
+    }
+  }
 
   revalidatePath("/transactions");
   revalidatePath("/dashboard");

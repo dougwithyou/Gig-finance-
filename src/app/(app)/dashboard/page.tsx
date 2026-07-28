@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { getTransactionsForMonth } from "@/lib/data/transactions";
-import { getFixedBillsWithStatus } from "@/lib/data/bills";
-import { getWorkDayConfig } from "@/lib/data/work-days";
-import { summarize, type HealthStatus } from "@/lib/calc";
+import { getMonthDashboardData } from "@/lib/dashboard-summary";
+import type { HealthStatus } from "@/lib/calc";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkDaysForm } from "@/components/dashboard/work-days-form";
+import { WorkedTodayToggle } from "@/components/dashboard/worked-today-toggle";
 
 const HEALTH_LABEL: Record<HealthStatus, string> = {
   green: "Vas bien",
@@ -19,22 +18,28 @@ const HEALTH_CLASS: Record<HealthStatus, string> = {
   red: "bg-destructive text-destructive-foreground",
 };
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+  const today = todayISO();
 
-  const [transactions, bills, workDayConfig] = await Promise.all([
-    getTransactionsForMonth(supabase, year, month),
-    getFixedBillsWithStatus(supabase, year, month),
-    getWorkDayConfig(supabase, year, month),
-  ]);
+  const { bills, workDayConfig, workedDays, summary } = await getMonthDashboardData(
+    supabase,
+    year,
+    month
+  );
 
-  const summary = summarize(transactions, bills, workDayConfig?.planned_work_days ?? null);
   const upcomingBills = bills
     .filter((b) => !b.is_paid)
     .sort((a, b) => a.due_day - b.due_day);
+
+  const todayWorked = workedDays.find((w) => w.date === today) ?? null;
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
@@ -73,16 +78,23 @@ export default async function DashboardPage() {
         <CardContent>
           {summary.dailyTarget === null ? (
             <p className="text-sm text-muted-foreground">
-              Configura tus días de trabajo planeados para calcular tu meta diaria.
+              {summary.remainingWorkDays === 0
+                ? "Ya no te quedan días de trabajo planeados este mes."
+                : "Configura tus días de trabajo planeados para calcular tu meta diaria."}
             </p>
           ) : (
             <p className="text-3xl font-bold">{formatMoney(summary.dailyTarget)}</p>
           )}
           <p className="mt-1 text-xs text-muted-foreground">
-            Pagos fijos pendientes: {formatMoney(summary.unpaidBillsTotal)}
+            Pagos fijos pendientes: {formatMoney(summary.unpaidBillsTotal)} · Gastos recurrentes
+            prorateados: {formatMoney(summary.recurringExpensesTotal)}
+            {summary.remainingWorkDays !== null && (
+              <> · Días de trabajo restantes: {summary.remainingWorkDays}</>
+            )}
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-3">
             <WorkDaysForm year={year} month={month} defaultValue={workDayConfig?.planned_work_days ?? null} />
+            <WorkedTodayToggle date={today} workedDay={todayWorked} />
           </div>
         </CardContent>
       </Card>

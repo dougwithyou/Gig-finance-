@@ -4,9 +4,10 @@ Control de ingresos, gastos y pagos fijos mensuales para trabajadores gig
 (delivery, rideshare, freelance). Ver [`PLAN.md`](./PLAN.md) para la
 arquitectura completa y las fases de construcción.
 
-**Estado actual: Fase 0 (base) + Fase 1 (MVP) implementadas.** Falta:
-gastos recurrentes prorateados, inferencia de días trabajados, historial
-y reportes, sync offline, y notificaciones push (Fases 2-4 del plan).
+**Estado actual: Fases 0, 1 y 2 implementadas** (base, MVP, y lógica de
+presupuesto completa: gastos recurrentes prorateados, inferencia de días
+trabajados, historial/reportes con gráfico de tendencia). Falta: sync
+offline y notificaciones push (Fases 3-4 del plan).
 
 ## Stack
 
@@ -19,7 +20,8 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001_schema.sql`, luego `0002_rls.sql`). Alternativamente, con la
+   (`0001_schema.sql`, `0002_rls.sql`, `0003_recurring_and_worked_days.sql`).
+   Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>
@@ -63,10 +65,13 @@ src/app/
   (app)/dashboard/        -- resumen: balance, meta diaria, próximos pagos
   (app)/transactions/     -- alta rápida y listado de ingresos/gastos
   (app)/bills/            -- pagos fijos + marcar pagado/pendiente
+  (app)/recurring/        -- gastos recurrentes no fijos (prorateados)
+  (app)/history/          -- filtros, comparación de meses, gráfico de tendencia
 src/lib/
   supabase/               -- clientes server/browser + sesión (proxy.ts)
   data/                   -- queries reutilizadas por las páginas
   calc.ts                 -- cálculo del resumen/meta diaria (puro, sin DB)
+  dashboard-summary.ts    -- fetch + cálculo combinados, usado por dashboard e historial
 src/proxy.ts              -- auth gate (Next.js 16 renombró middleware.ts a esto)
 supabase/migrations/      -- esquema + RLS, numerados y versionados
 public/manifest.json      -- instalabilidad como PWA
@@ -76,7 +81,10 @@ public/manifest.json      -- instalabilidad como PWA
 
 - **Next.js 16 rompe compatibilidad con `middleware.ts`** — el archivo se
   llama `src/proxy.ts` y exporta una función `proxy`, no `middleware`.
-- No hay `recurring_expenses`, `worked_days`, ni push notifications
-  todavía — ver `PLAN.md` sección "Fases" para el resto del roadmap.
+- La "meta diaria" usa `remainingWorkDays = planned_work_days − días ya
+  trabajados`. Un día cuenta como trabajado si tiene al menos un ingreso
+  registrado (automático) o si se marca a mano desde el dashboard.
+- No hay sync offline ni notificaciones push todavía — ver `PLAN.md`
+  sección "Fases" para el resto del roadmap (Fases 3-4).
 - Toda la UI está en un solo idioma (español), sin sistema de i18n — es
   una app de un solo usuario, no lo necesita.

@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* Dark theme only — no light variant, no OS-preference toggle. */
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --primary: #6366f1;
+  --primary-foreground: #fafafa;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --positive: #22c55e;
+  --positive-foreground: #052e12;
+  --destructive: #ef4444;
+  --destructive-foreground: #450a0a;
+  --warning: #f59e0b;
+  --warning-foreground: #451a03;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #6366f1;
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.5rem);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Comfortable tap targets for a phone-first, one-handed, post-shift UI */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}

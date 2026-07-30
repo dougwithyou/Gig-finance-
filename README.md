@@ -20,7 +20,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001` a `0004`, en orden numérico). Alternativamente, con la
+   (`0001` a `0005`, en orden numérico). Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>

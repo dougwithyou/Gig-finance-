@@ -92,10 +92,13 @@ src/lib/
   dashboard-summary.ts    -- fetch + cálculo combinados, usado por dashboard e historial
   offline/                -- outbox IndexedDB (queue.ts) + insert client-side (insert-transaction.ts)
   push/                   -- envío de push (send.ts), broadcast por usuario, auth de cron
+  spreadsheet/            -- export.ts (genera el .xlsx) e import.ts (lo parsea y valida)
 src/app/api/
   push/subscribe|unsubscribe/  -- guardan/borran la suscripción del usuario logueado
   cron/morning/           -- recordatorio de meta diaria + pagos por vencer
   cron/evening/           -- alerta de ingreso del día por debajo de la meta
+  export/                 -- GET, descarga un .xlsx (Ingresos, Gastos Variables, Gastos Fijos)
+  import/                 -- POST, sube un .xlsx y agrega filas nuevas (nunca actualiza/borra)
 src/proxy.ts              -- auth gate (Next.js 16 renombró middleware.ts a esto; /api/* excluido)
 supabase/migrations/      -- esquema + RLS, numerados y versionados
 public/manifest.json      -- instalabilidad como PWA
@@ -131,3 +134,11 @@ vercel.json                -- horarios de los cron jobs (UTC)
   Ver `PLAN.md` sección "Riesgos" para el detalle.
 - Toda la UI está en un solo idioma (español), sin sistema de i18n — es
   una app de un solo usuario, no lo necesita.
+- **Import/Export Excel** (`/settings`): usa `read-excel-file` / `write-excel-file`
+  en vez de `xlsx` (SheetJS) o `exceljs` — ambos tenían vulnerabilidades
+  altas conocidas (`xlsx` en el propio parser, `exceljs` vía su dependencia
+  `archiver`) relevantes justo aquí, donde se parsea un archivo subido por
+  el usuario. Importar es **solo agregar** — nunca actualiza ni borra
+  filas existentes, y siempre pasa por el cliente con sesión (nunca el
+  admin client), así que RLS sigue protegiendo la escritura igual que en
+  el resto de la app.

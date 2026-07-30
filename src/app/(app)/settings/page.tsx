@@ -3,6 +3,7 @@ import { getNotificationPreferences } from "@/lib/data/notifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PushToggle } from "@/components/settings/push-toggle";
 import { NotificationPrefsForm } from "@/components/settings/notification-prefs-form";
+import { ExportImportCard } from "@/components/settings/export-import-card";
 import { SignOutButton } from "@/components/sign-out-button";
 
 export default async function SettingsPage() {
@@ -20,6 +21,15 @@ export default async function SettingsPage() {
         <CardContent className="flex flex-col gap-5">
           <PushToggle />
           <NotificationPrefsForm prefs={prefs} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Importar / Exportar Excel</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ExportImportCard />
         </CardContent>
       </Card>
 

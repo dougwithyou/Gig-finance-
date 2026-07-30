@@ -42,7 +42,8 @@ export interface TransactionFilters {
 
 export async function getFilteredTransactions(
   supabase: SupabaseClient,
-  filters: TransactionFilters
+  filters: TransactionFilters,
+  limit = 500
 ): Promise<Transaction[]> {
   let query = supabase.from("transactions").select("*");
 
@@ -53,7 +54,7 @@ export async function getFilteredTransactions(
   const { data, error } = await query
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(limit);
 
   if (error) throw error;
   return data as Transaction[];

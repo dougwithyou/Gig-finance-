@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
-/* Dark theme only — no light variant, no OS-preference toggle. */
+/* Light theme — blue → teal → green accent family. */
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --card-foreground: #fafafa;
-  --primary: #6366f1;
-  --primary-foreground: #fafafa;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --positive: #22c55e;
-  --positive-foreground: #052e12;
-  --destructive: #ef4444;
-  --destructive-foreground: #450a0a;
+  --background: #eef3f9;
+  --foreground: #0f2547;
+  --card: #ffffff;
+  --card-foreground: #0f2547;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #e7edf5;
+  --secondary-foreground: #0f2547;
+  --muted: #e7edf5;
+  --muted-foreground: #5b7290;
+  --positive: #16a34a;
+  --positive-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
   --warning: #f59e0b;
   --warning-foreground: #451a03;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #6366f1;
+  --accent: #0d9488;
+  --accent-foreground: #ffffff;
+  --border: #dbe4ee;
+  --input: #cbd5e1;
+  --ring: #2563eb;
   --radius: 1rem;
 }
 
@@ -41,6 +43,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -57,7 +61,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {

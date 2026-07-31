@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Logo } from "@/components/logo";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(signIn, {});
@@ -13,7 +14,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-1 items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          <Logo className="mb-2 h-14 w-14 rounded-2xl" />
           <CardTitle>Gig Finance</CardTitle>
           <CardDescription>Inicia sesión para ver tu presupuesto.</CardDescription>
         </CardHeader>

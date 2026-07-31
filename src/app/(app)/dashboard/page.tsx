@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BarChart3, Calendar, FileText, Repeat } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthDashboardData } from "@/lib/dashboard-summary";
 import { dailyIncomeSeries, type HealthStatus } from "@/lib/calc";
@@ -90,6 +91,12 @@ export default async function DashboardPage({
           <div>
             <p className="text-xs text-muted-foreground">Progreso</p>
             <p className="text-2xl font-bold">{summary.progressPct}%</p>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary via-accent to-positive"
+                style={{ width: `${summary.progressPct}%` }}
+              />
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Ingresos del mes</p>
@@ -104,7 +111,10 @@ export default async function DashboardPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Meta diaria</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Meta diaria
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {summary.dailyTarget === null ? (
@@ -116,13 +126,29 @@ export default async function DashboardPage({
           ) : (
             <p className="text-3xl font-bold">{formatMoney(summary.dailyTarget)}</p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">
-            Pagos fijos pendientes: {formatMoney(summary.unpaidBillsTotal)} · Gastos recurrentes
-            prorateados: {formatMoney(summary.recurringExpensesTotal)}
+          <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4 shrink-0 text-primary" />
+              Pagos fijos pendientes:{" "}
+              <span className="font-semibold text-foreground">
+                {formatMoney(summary.unpaidBillsTotal)}
+              </span>
+            </span>
+            <span className="flex items-center gap-2">
+              <Repeat className="h-4 w-4 shrink-0 text-accent" />
+              Gastos recurrentes prorateados:{" "}
+              <span className="font-semibold text-foreground">
+                {formatMoney(summary.recurringExpensesTotal)}
+              </span>
+            </span>
             {summary.remainingWorkDays !== null && (
-              <> · Días de trabajo restantes: {summary.remainingWorkDays}</>
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 shrink-0 text-positive" />
+                Días de trabajo restantes:{" "}
+                <span className="font-semibold text-foreground">{summary.remainingWorkDays}</span>
+              </span>
             )}
-          </p>
+          </div>
         </CardContent>
       </Card>
 

@@ -16,21 +16,21 @@ export function IncomeTrendChart({
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#dbe4ee" vertical={false} />
           <XAxis
             dataKey="day"
-            tick={{ fill: "#a1a1aa", fontSize: 11 }}
-            axisLine={{ stroke: "#27272a" }}
+            tick={{ fill: "#5b7290", fontSize: 11 }}
+            axisLine={{ stroke: "#dbe4ee" }}
             tickLine={false}
             interval={2}
           />
           <YAxis
-            tick={{ fill: "#a1a1aa", fontSize: 11 }}
+            tick={{ fill: "#5b7290", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
           />
-          <Bar dataKey="income" fill="#22c55e" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="income" fill="#16a34a" radius={[4, 4, 0, 0]} />
           {dailyTarget !== null && (
             <ReferenceLine
               y={dailyTarget}

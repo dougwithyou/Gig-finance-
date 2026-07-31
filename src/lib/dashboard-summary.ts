@@ -2,8 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTransactionsForMonth } from "@/lib/data/transactions";
 import { getFixedBillsWithStatus } from "@/lib/data/bills";
 import { getActiveRecurringExpenses, prorateMonthly } from "@/lib/data/recurring";
-import { getWorkDayConfig, getWorkedDaysForMonth } from "@/lib/data/work-days";
+import { getPlannedWorkDaysForMonth, getWorkedDaysForMonth } from "@/lib/data/work-days";
 import { summarize } from "@/lib/calc";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 /**
  * `userId` is only needed when `supabase` is the service-role admin client
@@ -15,11 +19,11 @@ export async function getMonthDashboardData(
   month: number,
   userId?: string
 ) {
-  const [transactions, bills, recurringExpenses, workDayConfig, workedDays] = await Promise.all([
+  const [transactions, bills, recurringExpenses, plannedDays, workedDays] = await Promise.all([
     getTransactionsForMonth(supabase, year, month, userId),
     getFixedBillsWithStatus(supabase, year, month, userId),
     getActiveRecurringExpenses(supabase, userId),
-    getWorkDayConfig(supabase, year, month, userId),
+    getPlannedWorkDaysForMonth(supabase, year, month, userId),
     getWorkedDaysForMonth(supabase, year, month, userId),
   ]);
 
@@ -32,9 +36,10 @@ export async function getMonthDashboardData(
     transactions,
     bills,
     recurringExpensesTotal,
-    workDayConfig?.planned_work_days ?? null,
-    workedDays.length
+    plannedDays.map((p) => p.date),
+    workedDays.map((w) => w.date),
+    todayISO()
   );
 
-  return { transactions, bills, recurringExpenses, workDayConfig, workedDays, summary };
+  return { transactions, bills, recurringExpenses, plannedDays, workedDays, summary };
 }

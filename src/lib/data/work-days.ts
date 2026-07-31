@@ -1,20 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { WorkDayConfig, WorkedDay } from "@/lib/types/database";
+import type { PlannedWorkDay, WorkedDay } from "@/lib/types/database";
 import { monthBounds } from "@/lib/data/transactions";
 
-export async function getWorkDayConfig(
+export async function getPlannedWorkDaysForMonth(
   supabase: SupabaseClient,
   year: number,
   month: number,
   userId?: string
-): Promise<WorkDayConfig | null> {
-  let query = supabase.from("work_day_config").select("*").eq("year", year).eq("month", month);
+): Promise<PlannedWorkDay[]> {
+  const { start, end } = monthBounds(year, month);
+  let query = supabase.from("planned_work_days").select("*").gte("date", start).lte("date", end);
   if (userId) query = query.eq("user_id", userId);
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query.order("date", { ascending: true });
 
   if (error) throw error;
-  return data as WorkDayConfig | null;
+  return data as PlannedWorkDay[];
 }
 
 export async function getWorkedDaysForMonth(

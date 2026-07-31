@@ -15,7 +15,9 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function TransactionForm() {
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function TransactionForm({ initialDate }: { initialDate?: string }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<TransactionType>("income");
@@ -141,7 +143,13 @@ export function TransactionForm() {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="date">Fecha</Label>
-            <Input id="date" name="date" type="date" defaultValue={todayISO()} required />
+            <Input
+              id="date"
+              name="date"
+              type="date"
+              defaultValue={initialDate && ISO_DATE.test(initialDate) ? initialDate : todayISO()}
+              required
+            />
           </div>
 
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}

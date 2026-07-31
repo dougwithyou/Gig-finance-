@@ -38,15 +38,6 @@ export interface FixedBillWithStatus extends FixedBill {
   is_paid: boolean;
 }
 
-export interface WorkDayConfig {
-  id: string;
-  user_id: string;
-  year: number;
-  month: number;
-  planned_work_days: number;
-  created_at: string;
-}
-
 export type RecurringFrequency = "daily" | "weekly" | "biweekly";
 
 export interface RecurringExpense {
@@ -66,6 +57,13 @@ export interface WorkedDay {
   user_id: string;
   date: string;
   source: WorkedDaySource;
+  created_at: string;
+}
+
+export interface PlannedWorkDay {
+  id: string;
+  user_id: string;
+  date: string;
   created_at: string;
 }
 

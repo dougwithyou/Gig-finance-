@@ -8,9 +8,9 @@ export interface DashboardSummary {
   balance: number;
   unpaidBillsTotal: number;
   recurringExpensesTotal: number;
-  /** planned work days minus days already worked this month, floored at 0. */
+  /** planned dates (today or later) that aren't already worked. */
   remainingWorkDays: number | null;
-  /** null when the user hasn't set planned work days for this month yet. */
+  /** null when the user hasn't planned any work days this month yet. */
   dailyTarget: number | null;
   progressPct: number;
   health: HealthStatus;
@@ -20,8 +20,9 @@ export function summarize(
   transactions: Transaction[],
   bills: FixedBillWithStatus[],
   recurringExpensesTotal: number,
-  plannedWorkDays: number | null,
-  workedDaysCount: number
+  plannedDates: string[],
+  workedDates: string[],
+  today: string
 ): DashboardSummary {
   const mtdIncome = transactions
     .filter((t) => t.type === "income")
@@ -37,8 +38,9 @@ export function summarize(
     .reduce((sum, b) => sum + b.amount, 0);
 
   const remaining = Math.max(0, unpaidBillsTotal + recurringExpensesTotal - mtdIncome);
-  const remainingWorkDays =
-    plannedWorkDays != null ? Math.max(0, plannedWorkDays - workedDaysCount) : null;
+  const workedSet = new Set(workedDates);
+  const remainingPlannedDates = plannedDates.filter((d) => d >= today && !workedSet.has(d));
+  const remainingWorkDays = plannedDates.length > 0 ? remainingPlannedDates.length : null;
   const dailyTarget =
     remainingWorkDays && remainingWorkDays > 0 ? remaining / remainingWorkDays : null;
 

@@ -5,7 +5,7 @@ import { getSubscribedUserIds, sendToUser } from "@/lib/push/broadcast";
 import { getTransactionsForMonth } from "@/lib/data/transactions";
 import { getFixedBillsWithStatus } from "@/lib/data/bills";
 import { getActiveRecurringExpenses, prorateMonthly } from "@/lib/data/recurring";
-import { getWorkDayConfig, getWorkedDaysForMonth } from "@/lib/data/work-days";
+import { getPlannedWorkDaysForMonth, getWorkedDaysForMonth } from "@/lib/data/work-days";
 import { getNotificationPreferences } from "@/lib/data/notifications";
 import { summarize } from "@/lib/calc";
 import { formatMoney } from "@/lib/format";
@@ -39,24 +39,25 @@ export async function GET(request: Request) {
     const prefs = await getNotificationPreferences(admin, userId);
     if (!(prefs?.low_income_alert_enabled ?? true)) continue;
 
-    const [transactions, bills, recurringExpenses, workDayConfig, workedDays] = await Promise.all([
+    const [transactions, bills, recurringExpenses, plannedDays, workedDays] = await Promise.all([
       getTransactionsForMonth(admin, year, month, userId),
       getFixedBillsWithStatus(admin, year, month, userId),
       getActiveRecurringExpenses(admin, userId),
-      getWorkDayConfig(admin, year, month, userId),
+      getPlannedWorkDaysForMonth(admin, year, month, userId),
       getWorkedDaysForMonth(admin, year, month, userId),
     ]);
 
     const recurringTotal = recurringExpenses.reduce((s, e) => s + prorateMonthly(e, year, month), 0);
     const transactionsBeforeToday = transactions.filter((t) => t.date < today);
-    const workedDaysBeforeToday = workedDays.filter((w) => w.date < today).length;
+    const workedDatesBeforeToday = workedDays.filter((w) => w.date < today).map((w) => w.date);
 
     const baseline = summarize(
       transactionsBeforeToday,
       bills,
       recurringTotal,
-      workDayConfig?.planned_work_days ?? null,
-      workedDaysBeforeToday
+      plannedDays.map((p) => p.date),
+      workedDatesBeforeToday,
+      today
     );
 
     if (baseline.dailyTarget === null) continue;

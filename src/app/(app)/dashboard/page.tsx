@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthDashboardData } from "@/lib/dashboard-summary";
-import type { HealthStatus } from "@/lib/calc";
+import { dailyIncomeSeries, type HealthStatus } from "@/lib/calc";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WorkDaysForm } from "@/components/dashboard/work-days-form";
 import { WorkedTodayToggle } from "@/components/dashboard/worked-today-toggle";
+import { WorkCalendar } from "@/components/dashboard/work-calendar";
 
 const HEALTH_LABEL: Record<HealthStatus, string> = {
   green: "Vas bien",
@@ -18,18 +19,42 @@ const HEALTH_CLASS: Record<HealthStatus, string> = {
   red: "bg-destructive text-destructive-foreground",
 };
 
+const MONTH_LABEL = new Intl.DateTimeFormat("es", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default async function DashboardPage() {
+function prevMonth(year: number, month: number) {
+  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+}
+
+function nextMonth(year: number, month: number) {
+  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ y?: string; m?: string }>;
+}) {
+  const { y, m } = await searchParams;
   const supabase = await createClient();
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const parsedYear = Number(y);
+  const parsedMonth = Number(m);
+  const year = Number.isInteger(parsedYear) && parsedYear > 0 ? parsedYear : now.getFullYear();
+  const month =
+    Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+      ? parsedMonth
+      : now.getMonth() + 1;
   const today = todayISO();
 
-  const { bills, workDayConfig, workedDays, summary } = await getMonthDashboardData(
+  const { transactions, bills, plannedDays, workedDays, summary } = await getMonthDashboardData(
     supabase,
     year,
     month
@@ -40,6 +65,12 @@ export default async function DashboardPage() {
     .sort((a, b) => a.due_day - b.due_day);
 
   const todayWorked = workedDays.find((w) => w.date === today) ?? null;
+  const incomeByDate = new Map(
+    dailyIncomeSeries(transactions, year, month).map((p) => [p.date, p.income])
+  );
+  const prev = prevMonth(year, month);
+  const next = nextMonth(year, month);
+  const monthLabel = MONTH_LABEL.format(new Date(Date.UTC(year, month - 1, 1)));
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
@@ -80,7 +111,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted-foreground">
               {summary.remainingWorkDays === 0
                 ? "Ya no te quedan días de trabajo planeados este mes."
-                : "Configura tus días de trabajo planeados para calcular tu meta diaria."}
+                : "Marca tus días de trabajo planeados en el calendario para calcular tu meta diaria."}
             </p>
           ) : (
             <p className="text-3xl font-bold">{formatMoney(summary.dailyTarget)}</p>
@@ -92,10 +123,40 @@ export default async function DashboardPage() {
               <> · Días de trabajo restantes: {summary.remainingWorkDays}</>
             )}
           </p>
-          <div className="mt-4 flex flex-col gap-3">
-            <WorkDaysForm year={year} month={month} defaultValue={workDayConfig?.planned_work_days ?? null} />
-            <WorkedTodayToggle date={today} workedDay={todayWorked} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Calendario de trabajo</CardTitle>
+          <div className="flex items-center gap-2 text-sm">
+            <Link
+              href={`/dashboard?y=${prev.year}&m=${prev.month}`}
+              className="rounded-lg px-2 py-1 text-muted-foreground hover:bg-secondary"
+            >
+              ←
+            </Link>
+            <span className="min-w-[7rem] text-center capitalize">{monthLabel}</span>
+            <Link
+              href={`/dashboard?y=${next.year}&m=${next.month}`}
+              className="rounded-lg px-2 py-1 text-muted-foreground hover:bg-secondary"
+            >
+              →
+            </Link>
           </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <WorkCalendar
+            year={year}
+            month={month}
+            today={today}
+            plannedDates={plannedDays.map((p) => p.date)}
+            workedDays={workedDays}
+            incomeByDate={incomeByDate}
+          />
+          {year === now.getFullYear() && month === now.getMonth() + 1 && (
+            <WorkedTodayToggle date={today} workedDay={todayWorked} />
+          )}
         </CardContent>
       </Card>
 

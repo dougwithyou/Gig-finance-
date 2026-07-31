@@ -20,7 +20,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001` a `0005`, en orden numérico). Alternativamente, con la
+   (`0001` a `0006`, en orden numérico). Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>
@@ -110,9 +110,15 @@ vercel.json                -- horarios de los cron jobs (UTC)
 
 - **Next.js 16 rompe compatibilidad con `middleware.ts`** — el archivo se
   llama `src/proxy.ts` y exporta una función `proxy`, no `middleware`.
-- La "meta diaria" usa `remainingWorkDays = planned_work_days − días ya
-  trabajados`. Un día cuenta como trabajado si tiene al menos un ingreso
-  registrado (automático) o si se marca a mano desde el dashboard.
+- **Calendario de trabajo** (`/dashboard`): reemplaza el número suelto de
+  "días planeados" por un calendario donde marcás, día por día, qué días
+  del mes vas a trabajar. Días futuros: tocar el día lo marca/desmarca como
+  planeado (`planned_work_days`, una fila por fecha). Hoy o días pasados:
+  tocar el día lleva a `/transactions` con la fecha precargada para
+  registrar cuánto generaste — el ingreso se suma automáticamente al total
+  del mes y ese día pasa a contar como trabajado (`worked_days`, igual que
+  antes). La "meta diaria" usa `remainingWorkDays` = días planeados desde
+  hoy en adelante que todavía no están marcados como trabajados.
 - **Offline**: registrar un ingreso/gasto sin conexión lo guarda en
   IndexedDB (`src/lib/offline/queue.ts`) y lo sincroniza solo al recuperar
   señal (evento `online`, `visibilitychange`, o el botón "Reintentar" en

@@ -4,7 +4,12 @@ import { TransactionForm } from "@/components/transactions/transaction-form";
 import { TransactionList } from "@/components/transactions/transaction-list";
 import { PendingSyncBanner } from "@/components/transactions/pending-sync-banner";
 
-export default async function TransactionsPage() {
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const { date } = await searchParams;
   const supabase = await createClient();
   const now = new Date();
   const transactions = await getTransactionsForMonth(
@@ -17,7 +22,7 @@ export default async function TransactionsPage() {
     <div className="mx-auto flex max-w-md flex-col gap-6">
       <h1 className="text-xl font-semibold">Registrar movimiento</h1>
       <PendingSyncBanner />
-      <TransactionForm />
+      <TransactionForm initialDate={date} />
       <div>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Este mes</h2>
         <TransactionList transactions={transactions} />

@@ -20,7 +20,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001` a `0006`, en orden numérico). Alternativamente, con la
+   (`0001` a `0007`, en orden numérico). Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>
@@ -84,11 +84,13 @@ src/app/
   (app)/transactions/     -- alta rápida y listado de ingresos/gastos
   (app)/bills/            -- pagos fijos + marcar pagado/pendiente
   (app)/recurring/        -- gastos recurrentes no fijos (prorateados)
+  (app)/credit-cards/     -- tarjetas: saldo, APR, mínimo, plan de pago
   (app)/history/          -- filtros, comparación de meses, gráfico de tendencia
 src/lib/
   supabase/               -- clientes server/browser + sesión (proxy.ts)
   data/                   -- queries reutilizadas por las páginas
   calc.ts                 -- cálculo del resumen/meta diaria (puro, sin DB)
+  debt-payoff.ts          -- simulación de pago de tarjetas (bola de nieve/avalancha, puro, sin DB)
   dashboard-summary.ts    -- fetch + cálculo combinados, usado por dashboard e historial
   offline/                -- outbox IndexedDB (queue.ts) + insert client-side (insert-transaction.ts)
   push/                   -- envío de push (send.ts), broadcast por usuario, auth de cron
@@ -117,8 +119,25 @@ vercel.json                -- horarios de los cron jobs (UTC)
   tocar el día lleva a `/transactions` con la fecha precargada para
   registrar cuánto generaste — el ingreso se suma automáticamente al total
   del mes y ese día pasa a contar como trabajado (`worked_days`, igual que
-  antes). La "meta diaria" usa `remainingWorkDays` = días planeados desde
-  hoy en adelante que todavía no están marcados como trabajados.
+  antes).
+- **Meta diaria con ritmo por vencimiento** (`src/lib/calc.ts::summarize`):
+  la meta diaria no reparte lo que falta ganar por igual entre todos los
+  días de trabajo del mes — calcula, para cada pago próximo (pagos fijos,
+  tarjetas de crédito, y los gastos recurrentes agrupados a fin de mes),
+  cuánto haría falta ganar por día para llegar a tiempo a *esa* fecha, y
+  usa el más exigente de todos. Si un vencimiento está tan cerca que no
+  alcanza con los días ya planeados, igual muestra el monto (aunque sea
+  alto) junto con un aviso en vez de esconderlo.
+- **Tarjetas de crédito** (`/credit-cards`): saldo, APR y pago mínimo se
+  editan a mano (no hay registro automático de pagos como transacciones).
+  El pago mínimo de cada tarjeta activa entra al cálculo de la meta diaria
+  igual que un pago fijo, usando su propio día de vencimiento. El "Plan
+  para salir de deudas" simula mes a mes pagar el mínimo de todas las
+  tarjetas y volcar el resto del presupuesto (mínimos + un extra opcional)
+  en una sola tarjeta a la vez, en el orden que definís (bola de nieve:
+  saldo menor primero; o avalancha: interés más alto primero) — todo el
+  cálculo es client-side (`src/lib/debt-payoff.ts`), sin ida y vuelta al
+  servidor.
 - **Offline**: registrar un ingreso/gasto sin conexión lo guarda en
   IndexedDB (`src/lib/offline/queue.ts`) y lo sincroniza solo al recuperar
   señal (evento `online`, `visibilitychange`, o el botón "Reintentar" en

@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ArrowLeftRight, Receipt, RefreshCw, History } from "lucide-react";
+import {
+  LayoutDashboard,
+  ArrowLeftRight,
+  Receipt,
+  RefreshCw,
+  CreditCard,
+  History,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -10,6 +17,7 @@ const items = [
   { href: "/transactions", label: "Movimientos", icon: ArrowLeftRight },
   { href: "/bills", label: "Pagos fijos", icon: Receipt },
   { href: "/recurring", label: "Recurrentes", icon: RefreshCw },
+  { href: "/credit-cards", label: "Tarjetas", icon: CreditCard },
   { href: "/history", label: "Historial", icon: History },
 ];
 

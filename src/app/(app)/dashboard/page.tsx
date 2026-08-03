@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Calendar, FileText, Repeat } from "lucide-react";
+import { AlertTriangle, BarChart3, Calendar, CreditCard, FileText, Repeat } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthDashboardData } from "@/lib/dashboard-summary";
 import { dailyIncomeSeries, type HealthStatus } from "@/lib/calc";
@@ -25,6 +25,17 @@ const MONTH_LABEL = new Intl.DateTimeFormat("es", {
   year: "numeric",
   timeZone: "UTC",
 });
+
+const DAY_MONTH_LABEL = new Intl.DateTimeFormat("es", {
+  day: "numeric",
+  month: "long",
+  timeZone: "UTC",
+});
+
+function formatDueDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return DAY_MONTH_LABEL.format(new Date(Date.UTC(y, m - 1, d)));
+}
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -119,12 +130,26 @@ export default async function DashboardPage({
         <CardContent>
           {summary.dailyTarget === null ? (
             <p className="text-sm text-muted-foreground">
-              {summary.remainingWorkDays === 0
-                ? "Ya no te quedan días de trabajo planeados este mes."
-                : "Marca tus días de trabajo planeados en el calendario para calcular tu meta diaria."}
+              Marca tus días de trabajo planeados en el calendario para calcular tu meta diaria.
             </p>
           ) : (
-            <p className="text-3xl font-bold">{formatMoney(summary.dailyTarget)}</p>
+            <>
+              <p className="text-3xl font-bold">{formatMoney(summary.dailyTarget)}</p>
+              {summary.dailyTargetBreakdown && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Para llegar a tus pagos del {formatDueDate(summary.dailyTargetBreakdown.dueDate)}{" "}
+                  ({summary.dailyTargetBreakdown.labels.join(", ")},{" "}
+                  {formatMoney(summary.dailyTargetBreakdown.amount)}) necesitas este ritmo.
+                </p>
+              )}
+              {summary.dailyTargetAtRisk && (
+                <p className="mt-2 flex items-start gap-2 text-xs font-medium text-destructive">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  Con los días que planeaste no vas a llegar a tiempo a este pago — considera
+                  agregar un día extra en el calendario.
+                </p>
+              )}
+            </>
           )}
           <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-2">
@@ -139,6 +164,13 @@ export default async function DashboardPage({
               Gastos recurrentes prorateados:{" "}
               <span className="font-semibold text-foreground">
                 {formatMoney(summary.recurringExpensesTotal)}
+              </span>
+            </span>
+            <span className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 shrink-0 text-destructive" />
+              Pagos mínimos de tarjetas:{" "}
+              <span className="font-semibold text-foreground">
+                {formatMoney(summary.unpaidMinPaymentsTotal)}
               </span>
             </span>
             {summary.remainingWorkDays !== null && (

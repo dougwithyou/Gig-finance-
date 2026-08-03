@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from "@/lib/push/cron-auth";
 import { getSubscribedUserIds, sendToUser } from "@/lib/push/broadcast";
 import { getTransactionsForMonth } from "@/lib/data/transactions";
 import { getFixedBillsWithStatus } from "@/lib/data/bills";
+import { getCreditCardsWithStatus } from "@/lib/data/credit-cards";
 import { getActiveRecurringExpenses, prorateMonthly } from "@/lib/data/recurring";
 import { getPlannedWorkDaysForMonth, getWorkedDaysForMonth } from "@/lib/data/work-days";
 import { getNotificationPreferences } from "@/lib/data/notifications";
@@ -39,13 +40,15 @@ export async function GET(request: Request) {
     const prefs = await getNotificationPreferences(admin, userId);
     if (!(prefs?.low_income_alert_enabled ?? true)) continue;
 
-    const [transactions, bills, recurringExpenses, plannedDays, workedDays] = await Promise.all([
-      getTransactionsForMonth(admin, year, month, userId),
-      getFixedBillsWithStatus(admin, year, month, userId),
-      getActiveRecurringExpenses(admin, userId),
-      getPlannedWorkDaysForMonth(admin, year, month, userId),
-      getWorkedDaysForMonth(admin, year, month, userId),
-    ]);
+    const [transactions, bills, creditCards, recurringExpenses, plannedDays, workedDays] =
+      await Promise.all([
+        getTransactionsForMonth(admin, year, month, userId),
+        getFixedBillsWithStatus(admin, year, month, userId),
+        getCreditCardsWithStatus(admin, year, month, userId),
+        getActiveRecurringExpenses(admin, userId),
+        getPlannedWorkDaysForMonth(admin, year, month, userId),
+        getWorkedDaysForMonth(admin, year, month, userId),
+      ]);
 
     const recurringTotal = recurringExpenses.reduce((s, e) => s + prorateMonthly(e, year, month), 0);
     const transactionsBeforeToday = transactions.filter((t) => t.date < today);
@@ -54,10 +57,13 @@ export async function GET(request: Request) {
     const baseline = summarize(
       transactionsBeforeToday,
       bills,
+      creditCards,
       recurringTotal,
       plannedDays.map((p) => p.date),
       workedDatesBeforeToday,
-      today
+      today,
+      year,
+      month
     );
 
     if (baseline.dailyTarget === null) continue;

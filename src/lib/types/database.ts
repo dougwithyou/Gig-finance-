@@ -67,6 +67,33 @@ export interface PlannedWorkDay {
   created_at: string;
 }
 
+export interface CreditCard {
+  id: string;
+  user_id: string;
+  name: string;
+  balance: number;
+  apr: number;
+  minimum_payment: number;
+  due_day: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CreditCardPayment {
+  id: string;
+  credit_card_id: string;
+  year: number;
+  month: number;
+  paid_at: string | null;
+  created_at: string;
+}
+
+/** A credit card joined with its current-month minimum-payment status, for display. */
+export interface CreditCardWithStatus extends CreditCard {
+  payment: CreditCardPayment | null;
+  is_paid: boolean;
+}
+
 export interface PushSubscription {
   id: string;
   user_id: string;

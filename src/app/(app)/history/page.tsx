@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getFilteredTransactions, getTransactionsForMonth } from "@/lib/data/transactions";
 import { getMonthDashboardData } from "@/lib/dashboard-summary";
-import { monthTotals, dailyIncomeSeries } from "@/lib/calc";
+import { monthTotals, dailyIncomeSeries, categoryTotals } from "@/lib/calc";
 import type { TransactionType } from "@/lib/types/database";
 import { FiltersForm } from "@/components/history/filters-form";
 import { MonthComparison } from "@/components/history/month-comparison";
 import { IncomeTrendChart } from "@/components/history/income-trend-chart";
+import { CategorySpendingChart } from "@/components/history/category-spending-chart";
 import { TransactionList } from "@/components/transactions/transaction-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -55,6 +57,21 @@ export default async function HistoryPage({
         </CardHeader>
         <CardContent>
           <IncomeTrendChart data={trend} dailyTarget={dashboardData.summary.dailyTarget} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Gastos por categoría</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <CategorySpendingChart data={categoryTotals(currentMonthTx)} />
+          <Link
+            href="/categories"
+            className="text-center text-xs font-medium text-primary underline underline-offset-2"
+          >
+            Gestionar categorías y presupuestos →
+          </Link>
         </CardContent>
       </Card>
 

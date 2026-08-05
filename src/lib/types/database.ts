@@ -94,6 +94,15 @@ export interface CreditCardWithStatus extends CreditCard {
   is_paid: boolean;
 }
 
+export interface CategoryBudget {
+  id: string;
+  user_id: string;
+  name: string;
+  monthly_budget: number;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface PushSubscription {
   id: string;
   user_id: string;

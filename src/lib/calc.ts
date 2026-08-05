@@ -1,4 +1,9 @@
-import type { CreditCardWithStatus, FixedBillWithStatus, Transaction } from "@/lib/types/database";
+import type {
+  CategoryBudget,
+  CreditCardWithStatus,
+  FixedBillWithStatus,
+  Transaction,
+} from "@/lib/types/database";
 
 export type HealthStatus = "green" | "amber" | "red";
 
@@ -203,5 +208,84 @@ export function dailyIncomeSeries(
     const monthStr = String(month).padStart(2, "0");
     const date = `${year}-${monthStr}-${day}`;
     return { date, income: byDate.get(date) ?? 0 };
+  });
+}
+
+export interface CategoryTotal {
+  category: string;
+  total: number;
+  pct: number;
+}
+
+const UNCATEGORIZED_LABEL = "Sin categoría";
+
+function normalizeCategory(category: string) {
+  return category.trim().toLowerCase();
+}
+
+/** Expense totals by category for the month, sorted highest first. */
+export function categoryTotals(transactions: Transaction[]): CategoryTotal[] {
+  const byCategory = new Map<string, { label: string; total: number }>();
+
+  for (const t of transactions) {
+    if (t.type !== "expense") continue;
+    const label = t.category?.trim() || UNCATEGORIZED_LABEL;
+    const key = normalizeCategory(label);
+    const existing = byCategory.get(key);
+    if (existing) {
+      existing.total += t.amount;
+    } else {
+      byCategory.set(key, { label, total: t.amount });
+    }
+  }
+
+  const totalExpenses = Array.from(byCategory.values()).reduce((s, c) => s + c.total, 0);
+
+  return Array.from(byCategory.values())
+    .map((c) => ({
+      category: c.label,
+      total: c.total,
+      pct: totalExpenses > 0 ? Math.round((c.total / totalExpenses) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+export type BudgetStatus = "under" | "near" | "over";
+
+export interface CategoryBudgetStatusEntry {
+  name: string;
+  budget: number;
+  spent: number;
+  pct: number;
+  status: BudgetStatus;
+}
+
+const NEAR_LIMIT_THRESHOLD = 0.8;
+
+/** Each active budget's consumption this month, matched against transactions by normalized category name. */
+export function categoryBudgetStatuses(
+  transactions: Transaction[],
+  budgets: CategoryBudget[]
+): CategoryBudgetStatusEntry[] {
+  const spentByCategory = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== "expense" || !t.category) continue;
+    const key = normalizeCategory(t.category);
+    spentByCategory.set(key, (spentByCategory.get(key) ?? 0) + t.amount);
+  }
+
+  return budgets.map((b) => {
+    const spent = spentByCategory.get(normalizeCategory(b.name)) ?? 0;
+    const ratio = spent / b.monthly_budget;
+    const status: BudgetStatus =
+      ratio >= 1 ? "over" : ratio >= NEAR_LIMIT_THRESHOLD ? "near" : "under";
+
+    return {
+      name: b.name,
+      budget: b.monthly_budget,
+      spent,
+      pct: Math.round(ratio * 100),
+      status,
+    };
   });
 }

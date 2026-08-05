@@ -17,7 +17,13 @@ function todayISO() {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function TransactionForm({ initialDate }: { initialDate?: string }) {
+export function TransactionForm({
+  initialDate,
+  categoryOptions = [],
+}: {
+  initialDate?: string;
+  categoryOptions?: string[];
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<TransactionType>("income");
@@ -137,7 +143,20 @@ export function TransactionForm({ initialDate }: { initialDate?: string }) {
           ) : (
             <div className="flex flex-col gap-2">
               <Label htmlFor="category">Categoría (opcional)</Label>
-              <Input id="category" name="category" type="text" placeholder="Gasolina, comida, herramientas..." />
+              <Input
+                id="category"
+                name="category"
+                type="text"
+                list="category-options"
+                placeholder="Gasolina, comida, herramientas..."
+              />
+              {categoryOptions.length > 0 && (
+                <datalist id="category-options">
+                  {categoryOptions.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              )}
             </div>
           )}
 

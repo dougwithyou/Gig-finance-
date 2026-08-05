@@ -20,7 +20,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001` a `0007`, en orden numérico). Alternativamente, con la
+   (`0001` a `0008`, en orden numérico). Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>
@@ -85,7 +85,8 @@ src/app/
   (app)/bills/            -- pagos fijos + marcar pagado/pendiente
   (app)/recurring/        -- gastos recurrentes no fijos (prorateados)
   (app)/credit-cards/     -- tarjetas: saldo, APR, mínimo, plan de pago
-  (app)/history/          -- filtros, comparación de meses, gráfico de tendencia
+  (app)/categories/       -- presupuesto mensual por categoría de gasto
+  (app)/history/          -- filtros, comparación de meses, gráfico de tendencia y gastos por categoría
 src/lib/
   supabase/               -- clientes server/browser + sesión (proxy.ts)
   data/                   -- queries reutilizadas por las páginas
@@ -138,6 +139,20 @@ vercel.json                -- horarios de los cron jobs (UTC)
   saldo menor primero; o avalancha: interés más alto primero) — todo el
   cálculo es client-side (`src/lib/debt-payoff.ts`), sin ida y vuelta al
   servidor.
+- **Categorías y presupuestos** (`/categories`): `transactions.category`
+  sigue siendo texto libre (no es un catálogo cerrado) — el campo
+  "Categoría" de `/transactions` ahora sugiere, vía `<datalist>`, los
+  nombres de las categorías con presupuesto, pero sigue aceptando
+  cualquier texto. El presupuesto mensual por categoría se compara contra
+  el gasto normalizado (`trim().toLowerCase()`) para que "Gasolina" y
+  "gasolina" cuenten como la misma categoría. Estado: verde (&lt;80% usado),
+  ámbar (≥80%, "te estás acercando al límite"), rojo (≥100%, muestra
+  cuánto te pasaste) — es un aviso visual, no push. El gráfico de dona en
+  `/history` (`src/components/history/category-spending-chart.tsx`) usa
+  Recharts y una paleta categórica validada para daltonismo (más de 8
+  categorías se agrupan en "Otros"). Ninguno de los dos se integra al
+  cálculo de "Meta diaria" — un presupuesto de categoría es un límite que
+  el usuario se pone, no una obligación de pago.
 - **Offline**: registrar un ingreso/gasto sin conexión lo guarda en
   IndexedDB (`src/lib/offline/queue.ts`) y lo sincroniza solo al recuperar
   señal (evento `online`, `visibilitychange`, o el botón "Reintentar" en

@@ -85,6 +85,7 @@ export interface CreditCardPayment {
   year: number;
   month: number;
   paid_at: string | null;
+  transaction_id: string | null;
   created_at: string;
 }
 

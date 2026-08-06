@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export type FormState = { error?: string; success?: number };
 
+const CREDIT_CARD_PAYMENT_CATEGORY = "Pago de tarjeta de crédito";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function parseCardFields(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const balance = Number(formData.get("balance"));
@@ -91,6 +97,13 @@ export async function deactivateCreditCard(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+/**
+ * Marking a card's minimum payment "paid" logs a real expense transaction
+ * (category `CREDIT_CARD_PAYMENT_CATEGORY`) so it counts against
+ * mtdExpenses/balance and shows up in the category breakdown — unmarking
+ * it deletes that same transaction again, found via the payment row's
+ * `transaction_id`.
+ */
 export async function toggleCreditCardPaid(formData: FormData) {
   const cardId = String(formData.get("card_id") ?? "");
   const year = Number(formData.get("year"));
@@ -100,14 +113,70 @@ export async function toggleCreditCardPaid(formData: FormData) {
   if (!cardId || !year || !month) return;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
 
-  await supabase
-    .from("credit_card_payments")
-    .upsert(
-      { credit_card_id: cardId, year, month, paid_at: currentlyPaid ? null : new Date().toISOString() },
-      { onConflict: "credit_card_id,year,month" }
-    );
+  if (currentlyPaid) {
+    const { data: existing } = await supabase
+      .from("credit_card_payments")
+      .select("transaction_id")
+      .eq("credit_card_id", cardId)
+      .eq("year", year)
+      .eq("month", month)
+      .maybeSingle();
+
+    if (existing?.transaction_id) {
+      await supabase.from("transactions").delete().eq("id", existing.transaction_id);
+    }
+
+    await supabase
+      .from("credit_card_payments")
+      .upsert(
+        { credit_card_id: cardId, year, month, paid_at: null, transaction_id: null },
+        { onConflict: "credit_card_id,year,month" }
+      );
+  } else {
+    const { data: card } = await supabase
+      .from("credit_cards")
+      .select("name, minimum_payment")
+      .eq("id", cardId)
+      .single();
+
+    if (!card) return;
+
+    const { data: transaction, error: txError } = await supabase
+      .from("transactions")
+      .insert({
+        user_id: user.id,
+        type: "expense",
+        amount: card.minimum_payment,
+        description: `Pago mínimo tarjeta ${card.name}`,
+        date: todayISO(),
+        category: CREDIT_CARD_PAYMENT_CATEGORY,
+      })
+      .select("id")
+      .single();
+
+    if (txError || !transaction) return;
+
+    await supabase
+      .from("credit_card_payments")
+      .upsert(
+        {
+          credit_card_id: cardId,
+          year,
+          month,
+          paid_at: new Date().toISOString(),
+          transaction_id: transaction.id,
+        },
+        { onConflict: "credit_card_id,year,month" }
+      );
+  }
 
   revalidatePath("/credit-cards");
   revalidatePath("/dashboard");
+  revalidatePath("/transactions");
+  revalidatePath("/history");
 }

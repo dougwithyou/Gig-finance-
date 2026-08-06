@@ -20,7 +20,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001` a `0008`, en orden numérico). Alternativamente, con la
+   (`0001` a `0009`, en orden numérico). Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>
@@ -130,15 +130,20 @@ vercel.json                -- horarios de los cron jobs (UTC)
   alcanza con los días ya planeados, igual muestra el monto (aunque sea
   alto) junto con un aviso en vez de esconderlo.
 - **Tarjetas de crédito** (`/credit-cards`): saldo, APR y pago mínimo se
-  editan a mano (no hay registro automático de pagos como transacciones).
-  El pago mínimo de cada tarjeta activa entra al cálculo de la meta diaria
-  igual que un pago fijo, usando su propio día de vencimiento. El "Plan
-  para salir de deudas" simula mes a mes pagar el mínimo de todas las
-  tarjetas y volcar el resto del presupuesto (mínimos + un extra opcional)
-  en una sola tarjeta a la vez, en el orden que definís (bola de nieve:
-  saldo menor primero; o avalancha: interés más alto primero) — todo el
-  cálculo es client-side (`src/lib/debt-payoff.ts`), sin ida y vuelta al
-  servidor.
+  editan a mano — el saldo no se descuenta solo. El pago mínimo de cada
+  tarjeta activa entra al cálculo de la meta diaria igual que un pago
+  fijo, usando su propio día de vencimiento. **"Marcar mínimo pagado"** sí
+  registra un gasto real: crea una transacción de tipo `expense` por el
+  monto del mínimo, categoría fija `"Pago de tarjeta de crédito"`
+  (`src/app/(app)/credit-cards/actions.ts::toggleCreditCardPaid`), para
+  que se refleje en "Gastos del mes"/balance y en el gráfico de categorías
+  — desmarcarlo borra esa misma transacción (el vínculo vive en
+  `credit_card_payments.transaction_id`, migración `0009`). El "Plan para
+  salir de deudas" simula mes a mes pagar el mínimo de todas las tarjetas
+  y volcar el resto del presupuesto (mínimos + un extra opcional) en una
+  sola tarjeta a la vez, en el orden que definís (bola de nieve: saldo
+  menor primero; o avalancha: interés más alto primero) — todo el cálculo
+  es client-side (`src/lib/debt-payoff.ts`), sin ida y vuelta al servidor.
 - **Categorías y presupuestos** (`/categories`): `transactions.category`
   sigue siendo texto libre (no es un catálogo cerrado) — el campo
   "Categoría" de `/transactions` ahora sugiere, vía `<datalist>`, los

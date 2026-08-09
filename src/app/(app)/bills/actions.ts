@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export type FormState = { error?: string; success?: number };
 
+const FIXED_BILL_PAYMENT_CATEGORY = "Pago fijo";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function addBill(_prev: FormState, formData: FormData): Promise<FormState> {
   const name = String(formData.get("name") ?? "").trim();
   const amountRaw = String(formData.get("amount") ?? "");
@@ -59,6 +65,13 @@ export async function deactivateBill(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+/**
+ * Marking a bill "paid" logs a real expense transaction (category
+ * `FIXED_BILL_PAYMENT_CATEGORY`) so it counts against mtdExpenses/balance
+ * and shows up in the category breakdown — unmarking it deletes that same
+ * transaction again, found via the payment row's `transaction_id` (same
+ * pattern as `toggleCreditCardPaid` in credit-cards/actions.ts).
+ */
 export async function toggleBillPaid(formData: FormData) {
   const billId = String(formData.get("bill_id") ?? "");
   const year = Number(formData.get("year"));
@@ -68,14 +81,70 @@ export async function toggleBillPaid(formData: FormData) {
   if (!billId || !year || !month) return;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
 
-  await supabase
-    .from("bill_payments")
-    .upsert(
-      { fixed_bill_id: billId, year, month, paid_at: currentlyPaid ? null : new Date().toISOString() },
-      { onConflict: "fixed_bill_id,year,month" }
-    );
+  if (currentlyPaid) {
+    const { data: existing } = await supabase
+      .from("bill_payments")
+      .select("transaction_id")
+      .eq("fixed_bill_id", billId)
+      .eq("year", year)
+      .eq("month", month)
+      .maybeSingle();
+
+    if (existing?.transaction_id) {
+      await supabase.from("transactions").delete().eq("id", existing.transaction_id);
+    }
+
+    await supabase
+      .from("bill_payments")
+      .upsert(
+        { fixed_bill_id: billId, year, month, paid_at: null, transaction_id: null },
+        { onConflict: "fixed_bill_id,year,month" }
+      );
+  } else {
+    const { data: bill } = await supabase
+      .from("fixed_bills")
+      .select("name, amount")
+      .eq("id", billId)
+      .single();
+
+    if (!bill) return;
+
+    const { data: transaction, error: txError } = await supabase
+      .from("transactions")
+      .insert({
+        user_id: user.id,
+        type: "expense",
+        amount: bill.amount,
+        description: bill.name,
+        date: todayISO(),
+        category: FIXED_BILL_PAYMENT_CATEGORY,
+      })
+      .select("id")
+      .single();
+
+    if (txError || !transaction) return;
+
+    await supabase
+      .from("bill_payments")
+      .upsert(
+        {
+          fixed_bill_id: billId,
+          year,
+          month,
+          paid_at: new Date().toISOString(),
+          transaction_id: transaction.id,
+        },
+        { onConflict: "fixed_bill_id,year,month" }
+      );
+  }
 
   revalidatePath("/bills");
   revalidatePath("/dashboard");
+  revalidatePath("/transactions");
+  revalidatePath("/history");
 }

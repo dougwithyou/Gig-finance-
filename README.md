@@ -121,6 +121,13 @@ vercel.json                -- horarios de los cron jobs (UTC)
   registrar cuánto generaste — el ingreso se suma automáticamente al total
   del mes y ese día pasa a contar como trabajado (`worked_days`, igual que
   antes).
+- **Pagos fijos** (`/bills`): igual que las tarjetas de crédito, **"Marcar
+  pagado"** registra un gasto real — crea una transacción `expense` por el
+  monto del pago, categoría fija `"Pago fijo"`
+  (`src/app/(app)/bills/actions.ts::toggleBillPaid`), así que se refleja
+  en "Gastos del mes"/balance y en el gráfico de categorías. Desmarcarlo
+  borra esa misma transacción (`bill_payments.transaction_id`, columna que
+  ya existía desde `0001` pero no se usaba hasta ahora).
 - **Meta diaria con ritmo por vencimiento** (`src/lib/calc.ts::summarize`):
   la meta diaria no reparte lo que falta ganar por igual entre todos los
   días de trabajo del mes — calcula, para cada pago próximo (pagos fijos,

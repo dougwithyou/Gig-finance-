@@ -66,15 +66,23 @@ export default async function DashboardPage({
       : now.getMonth() + 1;
   const today = todayISO();
 
-  const { transactions, bills, plannedDays, workedDays, summary } = await getMonthDashboardData(
-    supabase,
-    year,
-    month
-  );
+  const { transactions, bills, creditCards, plannedDays, workedDays, summary } =
+    await getMonthDashboardData(supabase, year, month);
 
-  const upcomingBills = bills
-    .filter((b) => !b.is_paid)
-    .sort((a, b) => a.due_day - b.due_day);
+  const upcomingPayments = [
+    ...bills
+      .filter((b) => !b.is_paid)
+      .map((b) => ({ id: b.id, name: b.name, amount: b.amount, dueDay: b.due_day, kind: "bill" as const })),
+    ...creditCards
+      .filter((c) => !c.is_paid)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        amount: c.minimum_payment,
+        dueDay: c.due_day,
+        kind: "card" as const,
+      })),
+  ].sort((a, b) => a.dueDay - b.dueDay);
 
   const todayWorked = workedDays.find((w) => w.date === today) ?? null;
   const incomeByDate = new Map(
@@ -223,16 +231,25 @@ export default async function DashboardPage({
           <CardTitle>Próximos pagos</CardTitle>
         </CardHeader>
         <CardContent>
-          {upcomingBills.length === 0 ? (
+          {upcomingPayments.length === 0 ? (
             <p className="text-sm text-muted-foreground">No tienes pagos pendientes este mes.</p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {upcomingBills.map((bill) => (
-                <li key={bill.id} className="flex items-center justify-between text-sm">
-                  <span>
-                    {bill.name} <span className="text-muted-foreground">(día {bill.due_day})</span>
+              {upcomingPayments.map((item) => (
+                <li key={`${item.kind}-${item.id}`} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    {item.kind === "card" ? (
+                      <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                    {item.name}{" "}
+                    <span className="text-muted-foreground">
+                      (día {item.dueDay}
+                      {item.kind === "card" ? " · mínimo" : ""})
+                    </span>
                   </span>
-                  <span className="font-semibold">{formatMoney(bill.amount)}</span>
+                  <span className="font-semibold">{formatMoney(item.amount)}</span>
                 </li>
               ))}
             </ul>

@@ -48,6 +48,21 @@ Cinco pestañas, en este orden:
 `construirPlantilla()` es idempotente: se puede volver a correr sobre el mismo
 archivo y lo reconstruye desde cero (borra y recrea todas las pestañas).
 
+## Vista previa en .xlsx
+
+`vista-previa/Gig-Finance-vista-previa.xlsx` es una maqueta navegable para
+subir a Google Drive y ver el diseño sin montar nada. La genera
+`vista-previa/generar_vista_previa.py` (necesita `openpyxl`).
+
+**No es el producto.** Un `.xlsx` no puede llevar Apps Script, ni casillas de
+verificación, ni las fórmulas propias de Google Sheets (`QUERY`, `FILTER`,
+`SORT`, `ARRAYFORMULA`, `LET`). En la vista previa esas partes son valores
+fijos de ejemplo, y cada hoja lo dice.
+
+Lo que sí queda vivo, con fórmulas compatibles con Excel: totales de ingresos
+y gastos, gasto por categoría, barras de presupuesto, prorrateo de gastos
+recurrentes, total de obligaciones, pagos sin marcar y porcentaje de progreso.
+
 ## Los archivos
 
 | Archivo | Contenido |
@@ -63,6 +78,7 @@ archivo y lo reconstruye desde cero (borra y recrea todas las pestañas).
 | `30_Runtime.gs` | Menú `onOpen` y las automatizaciones `onEdit`. |
 | `40_SimulacionDeuda.gs` | Simulación mes a mes de bola de nieve / avalancha. |
 | `50_NuevoMes.gs` | Duplicar y vaciar la pestaña del mes. |
+| `../vista-previa/generar_vista_previa.py` | Genera la maqueta `.xlsx` de arriba. |
 
 Las coordenadas viven todas en `00_Constantes.gs`. Si mueves un bloque, muévelo
 ahí: las fórmulas se generan a partir de esas constantes.

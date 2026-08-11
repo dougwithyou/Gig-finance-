@@ -22,6 +22,12 @@ Cinco pestañas, en este orden:
 | `Plan de pago de deudas` | Calculadora de bola de nieve / avalancha con pago extra opcional. |
 | `_Listas` | Oculta. Alimenta todas las listas desplegables. |
 
+> **¿Sólo quieres publicar?** Sigue
+> [`entrega/GUIA-DE-ENTREGA.md`](./entrega/GUIA-DE-ENTREGA.md): explica paso a
+> paso cómo crear el archivo maestro, cómo sacar el enlace `/copy` y cómo
+> subirlo a Etsy. `entrega/Gig-Finance-completo.gs` es todo el generador en un
+> solo archivo, para pegarlo de una vez en Apps Script.
+
 ## Cómo generar el archivo que se vende
 
 1. Crea una hoja de cálculo nueva y vacía en Google Sheets.

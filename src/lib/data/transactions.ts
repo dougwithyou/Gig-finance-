@@ -34,6 +34,31 @@ export async function getTransactionsForMonth(
   return data as Transaction[];
 }
 
+/**
+ * Net balance (income − expenses) of every transaction strictly before the
+ * given month's first day — the "carry-forward" opening balance, derived
+ * straight from the ledger instead of stored anywhere, so it can never
+ * drift out of sync with the actual transaction history.
+ */
+export async function getCumulativeBalanceBefore(
+  supabase: SupabaseClient,
+  year: number,
+  month: number,
+  userId?: string
+): Promise<number> {
+  const { start } = monthBounds(year, month);
+  let query = supabase.from("transactions").select("type, amount").lt("date", start);
+  if (userId) query = query.eq("user_id", userId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data as Pick<Transaction, "type" | "amount">[]).reduce(
+    (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
+    0
+  );
+}
+
 export interface TransactionFilters {
   from?: string;
   to?: string;

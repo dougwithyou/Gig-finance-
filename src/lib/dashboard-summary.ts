@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getTransactionsForMonth } from "@/lib/data/transactions";
+import { getTransactionsForMonth, getCumulativeBalanceBefore } from "@/lib/data/transactions";
 import { getFixedBillsWithStatus } from "@/lib/data/bills";
 import { getCreditCardsWithStatus } from "@/lib/data/credit-cards";
 import { getActiveRecurringExpenses, prorateMonthly } from "@/lib/data/recurring";
 import { getPlannedWorkDaysForMonth, getWorkedDaysForMonth } from "@/lib/data/work-days";
+import { getMonthlyTarget } from "@/lib/data/monthly-targets";
 import { summarize } from "@/lib/calc";
 
 function todayISO() {
@@ -20,15 +21,25 @@ export async function getMonthDashboardData(
   month: number,
   userId?: string
 ) {
-  const [transactions, bills, creditCards, recurringExpenses, plannedDays, workedDays] =
-    await Promise.all([
-      getTransactionsForMonth(supabase, year, month, userId),
-      getFixedBillsWithStatus(supabase, year, month, userId),
-      getCreditCardsWithStatus(supabase, year, month, userId),
-      getActiveRecurringExpenses(supabase, userId),
-      getPlannedWorkDaysForMonth(supabase, year, month, userId),
-      getWorkedDaysForMonth(supabase, year, month, userId),
-    ]);
+  const [
+    transactions,
+    bills,
+    creditCards,
+    recurringExpenses,
+    plannedDays,
+    workedDays,
+    openingBalance,
+    monthlyTarget,
+  ] = await Promise.all([
+    getTransactionsForMonth(supabase, year, month, userId),
+    getFixedBillsWithStatus(supabase, year, month, userId),
+    getCreditCardsWithStatus(supabase, year, month, userId),
+    getActiveRecurringExpenses(supabase, userId),
+    getPlannedWorkDaysForMonth(supabase, year, month, userId),
+    getWorkedDaysForMonth(supabase, year, month, userId),
+    getCumulativeBalanceBefore(supabase, year, month, userId),
+    getMonthlyTarget(supabase, year, month, userId),
+  ]);
 
   const recurringExpensesTotal = recurringExpenses.reduce(
     (sum, e) => sum + prorateMonthly(e, year, month),
@@ -44,8 +55,18 @@ export async function getMonthDashboardData(
     workedDays.map((w) => w.date),
     todayISO(),
     year,
-    month
+    month,
+    openingBalance
   );
 
-  return { transactions, bills, creditCards, recurringExpenses, plannedDays, workedDays, summary };
+  return {
+    transactions,
+    bills,
+    creditCards,
+    recurringExpenses,
+    plannedDays,
+    workedDays,
+    monthlyTarget,
+    summary,
+  };
 }

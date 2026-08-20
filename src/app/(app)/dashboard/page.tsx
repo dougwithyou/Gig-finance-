@@ -1,12 +1,22 @@
 import Link from "next/link";
-import { AlertTriangle, BarChart3, Calendar, CreditCard, FileText, Repeat } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  Calendar,
+  CreditCard,
+  FileText,
+  Repeat,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthDashboardData } from "@/lib/dashboard-summary";
-import { dailyIncomeSeries, type HealthStatus } from "@/lib/calc";
+import { dailyIncomeSeries, projectMonthEnd, type HealthStatus } from "@/lib/calc";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkedTodayToggle } from "@/components/dashboard/worked-today-toggle";
 import { WorkCalendar } from "@/components/dashboard/work-calendar";
+import { MonthlyTargetForm } from "@/components/dashboard/monthly-target-form";
 
 const HEALTH_LABEL: Record<HealthStatus, string> = {
   green: "Vas bien",
@@ -66,8 +76,22 @@ export default async function DashboardPage({
       : now.getMonth() + 1;
   const today = todayISO();
 
-  const { transactions, bills, creditCards, plannedDays, workedDays, summary } =
+  const { transactions, bills, creditCards, plannedDays, workedDays, monthlyTarget, summary } =
     await getMonthDashboardData(supabase, year, month);
+
+  const dailyTargetSet = monthlyTarget?.daily_target ?? null;
+  const projection = dailyTargetSet
+    ? projectMonthEnd(
+        summary.openingBalance,
+        summary.mtdIncome,
+        summary.mtdExpenses,
+        summary.unpaidBillsTotal,
+        summary.unpaidMinPaymentsTotal,
+        summary.recurringExpensesTotal,
+        dailyTargetSet,
+        summary.remainingWorkDays ?? 0
+      )
+    : null;
 
   const upcomingPayments = [
     ...bills
@@ -100,6 +124,19 @@ export default async function DashboardPage({
           {HEALTH_LABEL[summary.health]}
         </span>
       </div>
+
+      {summary.openingBalance !== 0 && (
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${
+            summary.openingBalance > 0
+              ? "border-positive/30 bg-positive/10 text-positive"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
+          }`}
+        >
+          <Wallet className="h-4 w-4 shrink-0" />
+          Saldo que arrastras del mes anterior: {formatMoney(summary.openingBalance)}
+        </div>
+      )}
 
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 pt-5">
@@ -189,6 +226,40 @@ export default async function DashboardPage({
               </span>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-accent" />
+            Proyección del mes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <MonthlyTargetForm year={year} month={month} defaultValue={dailyTargetSet} />
+          {projection && (
+            <div>
+              <p className="text-xs text-muted-foreground">
+                Si generas {formatMoney(dailyTargetSet ?? 0)}/día
+                {summary.remainingWorkDays
+                  ? ` los ${summary.remainingWorkDays} días que planeaste`
+                  : ""}
+                , vas a terminar el mes con:
+              </p>
+              <p
+                className={`text-3xl font-bold ${
+                  projection.projectedEndingBalance >= 0 ? "text-positive" : "text-destructive"
+                }`}
+              >
+                {formatMoney(projection.projectedEndingBalance)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ingresos proyectados: {formatMoney(projection.projectedIncome)} · Gastos
+                proyectados: {formatMoney(projection.projectedExpenses)}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -20,7 +20,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Supabase
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
 2. En **SQL Editor**, corre en orden los archivos de `supabase/migrations/`
-   (`0001` a `0009`, en orden numérico). Alternativamente, con la
+   (`0001` a `0010`, en orden numérico). Alternativamente, con la
    [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
    ```bash
    supabase link --project-ref <tu-project-ref>
@@ -136,6 +136,26 @@ vercel.json                -- horarios de los cron jobs (UTC)
   usa el más exigente de todos. Si un vencimiento está tan cerca que no
   alcanza con los días ya planeados, igual muestra el monto (aunque sea
   alto) junto con un aviso en vez de esconderlo.
+- **Saldo que se arrastra entre meses** (`getCumulativeBalanceBefore` en
+  `src/lib/data/transactions.ts`): el balance nunca "desaparece" a fin de
+  mes — se deriva sumando *todas* las transacciones anteriores al primer
+  día del mes que se está viendo (sin tabla ni columna extra, es puro
+  `SUM` sobre el historial ya existente). Un saldo negativo arrastrado se
+  trata como una obligación más, vencida hoy mismo, dentro del cálculo de
+  Meta diaria (puede ser lo que termine determinando el ritmo del día); un
+  saldo positivo se trata como ingreso ya en mano, así que resta presión.
+  Se muestra como un aviso arriba del resumen del dashboard cuando no es
+  cero.
+- **Proyección del mes** (`/dashboard`, tarjeta "Proyección del mes"):
+  a diferencia de la Meta diaria (el ritmo *mínimo* necesario), acá el
+  usuario fija su propia meta diaria (tabla `monthly_targets`, una por
+  mes) y la app proyecta hacia adelante: ingresos proyectados = lo ya
+  ganado + (meta diaria × días de trabajo planeados restantes); gastos
+  proyectados = lo ya gastado + pagos fijos/tarjetas sin pagar + gastos
+  recurrentes; el resultado final sale de sumarle el saldo arrastrado del
+  mes anterior (`src/lib/calc.ts::projectMonthEnd`, función pura). Las dos
+  tarjetas conviven a propósito: una dice "esto es lo mínimo", la otra
+  "esto es lo que te va a quedar si cumples tu propia meta".
 - **Tarjetas de crédito** (`/credit-cards`): saldo, APR y pago mínimo se
   editan a mano — el saldo no se descuenta solo. El pago mínimo de cada
   tarjeta activa entra al cálculo de la meta diaria igual que un pago

@@ -18,6 +18,8 @@ export interface DashboardSummary {
   mtdIncome: number;
   mtdExpenses: number;
   balance: number;
+  /** net income − expenses of everything before this month — carries forward, positive or negative. */
+  openingBalance: number;
   unpaidBillsTotal: number;
   unpaidMinPaymentsTotal: number;
   recurringExpensesTotal: number;
@@ -59,7 +61,8 @@ export function summarize(
   workedDates: string[],
   today: string,
   year: number,
-  month: number
+  month: number,
+  openingBalance = 0
 ): DashboardSummary {
   const mtdIncome = transactions
     .filter((t) => t.type === "income")
@@ -67,6 +70,10 @@ export function summarize(
   const mtdExpenses = transactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
+  // A positive carry-forward acts like income already banked (cushions
+  // every deadline); a negative one is added below as an obligation due
+  // today (it's already owed, nothing more urgent exists).
+  const effectiveIncome = mtdIncome + Math.max(0, openingBalance);
   const unpaidBillsTotal = bills
     .filter((b) => !b.is_paid)
     .reduce((sum, b) => sum + b.amount, 0);
@@ -82,7 +89,7 @@ export function summarize(
 
   const remaining = Math.max(
     0,
-    unpaidBillsTotal + unpaidMinPaymentsTotal + recurringExpensesTotal - mtdIncome
+    unpaidBillsTotal + unpaidMinPaymentsTotal + recurringExpensesTotal - openingBalance - mtdIncome
   );
   const workedSet = new Set(workedDates);
   const remainingPlannedDates = plannedDates.filter((d) => d >= today && !workedSet.has(d));
@@ -115,6 +122,15 @@ export function summarize(
       label: "Gastos recurrentes",
     });
   }
+  if (openingBalance < 0) {
+    // Debt carried in from before this month is already due — nothing is
+    // more urgent, so it lands on today.
+    obligations.push({
+      amount: -openingBalance,
+      dueDate: today,
+      label: "Saldo negativo del mes anterior",
+    });
+  }
 
   const dueDates = Array.from(new Set(obligations.map((o) => o.dueDate))).sort();
 
@@ -126,7 +142,7 @@ export function summarize(
     const amountThroughDate = obligations
       .filter((o) => o.dueDate <= dueDate)
       .reduce((sum, o) => sum + o.amount, 0);
-    const requiredByDate = Math.max(0, amountThroughDate - mtdIncome);
+    const requiredByDate = Math.max(0, amountThroughDate - effectiveIncome);
     if (requiredByDate === 0) continue;
 
     const workDaysByDate = remainingPlannedDates.filter((d) => d <= dueDate).length;
@@ -160,6 +176,7 @@ export function summarize(
     mtdIncome,
     mtdExpenses,
     balance: mtdIncome - mtdExpenses,
+    openingBalance,
     unpaidBillsTotal,
     unpaidMinPaymentsTotal,
     recurringExpensesTotal,
@@ -288,4 +305,34 @@ export function categoryBudgetStatuses(
       status,
     };
   });
+}
+
+export interface MonthProjection {
+  openingBalance: number;
+  projectedIncome: number;
+  projectedExpenses: number;
+  projectedEndingBalance: number;
+}
+
+/**
+ * "If I earn `dailyTargetSet` per remaining planned work day, what do I
+ * end the month with?" — independent of the deadline-driven dailyTarget
+ * in `summarize()`: this is the user's own goal, not the minimum needed.
+ */
+export function projectMonthEnd(
+  openingBalance: number,
+  mtdIncome: number,
+  mtdExpenses: number,
+  unpaidBillsTotal: number,
+  unpaidMinPaymentsTotal: number,
+  recurringExpensesTotal: number,
+  dailyTargetSet: number,
+  remainingWorkDays: number
+): MonthProjection {
+  const projectedIncome = mtdIncome + dailyTargetSet * remainingWorkDays;
+  const projectedExpenses =
+    mtdExpenses + unpaidBillsTotal + unpaidMinPaymentsTotal + recurringExpensesTotal;
+  const projectedEndingBalance = openingBalance + projectedIncome - projectedExpenses;
+
+  return { openingBalance, projectedIncome, projectedExpenses, projectedEndingBalance };
 }

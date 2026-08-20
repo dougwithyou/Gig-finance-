@@ -3,6 +3,45 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+export type FormState = { error?: string; success?: number };
+
+/** Sets the user's own daily-target goal for a month, used by the "Proyección del mes" card. */
+export async function setMonthlyTarget(_prev: FormState, formData: FormData): Promise<FormState> {
+  const year = Number(formData.get("year"));
+  const month = Number(formData.get("month"));
+  const dailyTarget = Number(formData.get("daily_target"));
+
+  if (!year || !month) {
+    return { error: "Mes inválido." };
+  }
+  if (!dailyTarget || dailyTarget <= 0) {
+    return { error: "Ingresa un monto válido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Sesión expirada, vuelve a iniciar sesión." };
+  }
+
+  const { error } = await supabase
+    .from("monthly_targets")
+    .upsert(
+      { user_id: user.id, year, month, daily_target: dailyTarget },
+      { onConflict: "user_id,year,month" }
+    );
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: Date.now() };
+}
+
 /** Toggles whether a (usually future) date is planned as a work day. */
 export async function togglePlannedWorkDay(formData: FormData) {
   const date = String(formData.get("date") ?? "");

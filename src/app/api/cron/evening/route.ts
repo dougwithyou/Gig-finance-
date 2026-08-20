@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/push/cron-auth";
 import { getSubscribedUserIds, sendToUser } from "@/lib/push/broadcast";
-import { getTransactionsForMonth } from "@/lib/data/transactions";
+import { getTransactionsForMonth, getCumulativeBalanceBefore } from "@/lib/data/transactions";
 import { getFixedBillsWithStatus } from "@/lib/data/bills";
 import { getCreditCardsWithStatus } from "@/lib/data/credit-cards";
 import { getActiveRecurringExpenses, prorateMonthly } from "@/lib/data/recurring";
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     const prefs = await getNotificationPreferences(admin, userId);
     if (!(prefs?.low_income_alert_enabled ?? true)) continue;
 
-    const [transactions, bills, creditCards, recurringExpenses, plannedDays, workedDays] =
+    const [transactions, bills, creditCards, recurringExpenses, plannedDays, workedDays, openingBalance] =
       await Promise.all([
         getTransactionsForMonth(admin, year, month, userId),
         getFixedBillsWithStatus(admin, year, month, userId),
@@ -48,6 +48,7 @@ export async function GET(request: Request) {
         getActiveRecurringExpenses(admin, userId),
         getPlannedWorkDaysForMonth(admin, year, month, userId),
         getWorkedDaysForMonth(admin, year, month, userId),
+        getCumulativeBalanceBefore(admin, year, month, userId),
       ]);
 
     const recurringTotal = recurringExpenses.reduce((s, e) => s + prorateMonthly(e, year, month), 0);
@@ -63,7 +64,8 @@ export async function GET(request: Request) {
       workedDatesBeforeToday,
       today,
       year,
-      month
+      month,
+      openingBalance
     );
 
     if (baseline.dailyTarget === null) continue;

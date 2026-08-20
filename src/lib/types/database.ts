@@ -104,6 +104,15 @@ export interface CategoryBudget {
   created_at: string;
 }
 
+export interface MonthlyTarget {
+  id: string;
+  user_id: string;
+  year: number;
+  month: number;
+  daily_target: number;
+  created_at: string;
+}
+
 export interface PushSubscription {
   id: string;
   user_id: string;

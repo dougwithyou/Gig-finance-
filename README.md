@@ -135,7 +135,15 @@ vercel.json                -- horarios de los cron jobs (UTC)
   cuánto haría falta ganar por día para llegar a tiempo a *esa* fecha, y
   usa el más exigente de todos. Si un vencimiento está tan cerca que no
   alcanza con los días ya planeados, igual muestra el monto (aunque sea
-  alto) junto con un aviso en vez de esconderlo.
+  alto) junto con un aviso en vez de esconderlo. **Los gastos variables ya
+  generados este mes** (`mtdExpenses` — todo lo que no es pago fijo,
+  tarjeta ni recurrente) también entran como una obligación más, vencida
+  hoy mismo — sin esto, la meta diaria solo miraba "cuánto debo" e
+  ignoraba "cuánto ya gasté", lo que podía mostrar $0 aunque el usuario ya
+  hubiera gastado de más. El desglose de "para llegar a tus pagos de tal
+  fecha necesitas este ritmo" lista **todo** lo que compone ese monto
+  acumulado (no solo lo que vence justo ese día), para que el número
+  nunca quede sin explicación.
 - **Saldo que se arrastra entre meses** (`getCumulativeBalanceBefore` en
   `src/lib/data/transactions.ts`): el balance nunca "desaparece" a fin de
   mes — se deriva sumando *todas* las transacciones anteriores al primer

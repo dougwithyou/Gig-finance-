@@ -89,7 +89,12 @@ export function summarize(
 
   const remaining = Math.max(
     0,
-    unpaidBillsTotal + unpaidMinPaymentsTotal + recurringExpensesTotal - openingBalance - mtdIncome
+    unpaidBillsTotal +
+      unpaidMinPaymentsTotal +
+      recurringExpensesTotal +
+      mtdExpenses -
+      openingBalance -
+      mtdIncome
   );
   const workedSet = new Set(workedDates);
   const remainingPlannedDates = plannedDates.filter((d) => d >= today && !workedSet.has(d));
@@ -131,6 +136,17 @@ export function summarize(
       label: "Saldo negativo del mes anterior",
     });
   }
+  if (mtdExpenses > 0) {
+    // Money already spent this month (gastos variables) is money that
+    // won't be there to cover bills — same "already due" treatment as the
+    // negative carry-forward above, so it actually shows up in the pace
+    // instead of being invisible to it.
+    obligations.push({
+      amount: mtdExpenses,
+      dueDate: today,
+      label: "Gastos variables del mes",
+    });
+  }
 
   const dueDates = Array.from(new Set(obligations.map((o) => o.dueDate))).sort();
 
@@ -155,7 +171,10 @@ export function summarize(
       dailyTargetBreakdown = {
         dueDate,
         amount: amountThroughDate,
-        labels: obligations.filter((o) => o.dueDate === dueDate).map((o) => o.label),
+        // Every obligation folded into `amountThroughDate`, not just the
+        // ones due exactly on `dueDate` — so the labels always explain
+        // the full amount shown, not just today's slice of it.
+        labels: obligations.filter((o) => o.dueDate <= dueDate).map((o) => o.label),
       };
     }
   }

@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   Repeat,
+  ShoppingCart,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -204,6 +205,15 @@ export default async function DashboardPage({
                 {formatMoney(summary.unpaidBillsTotal)}
               </span>
             </span>
+            {summary.mtdExpenses > 0 && (
+              <span className="flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 shrink-0 text-warning" />
+                Gastos variables ya generados:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatMoney(summary.mtdExpenses)}
+                </span>
+              </span>
+            )}
             <span className="flex items-center gap-2">
               <Repeat className="h-4 w-4 shrink-0 text-accent" />
               Gastos recurrentes prorateados:{" "}
